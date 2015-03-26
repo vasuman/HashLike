@@ -1,0 +1,10 @@
+port: 8080
+
+db:
+        driver: sqlite3
+        source: ":memory:"
+
+allowed_sites:
+        - domain: ".*"
+          paths:
+                - ".*"
