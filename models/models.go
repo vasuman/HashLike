@@ -9,10 +9,10 @@ CREATE TABLE IF NOT EXISTS locations (
   hash CHAR(32)
 );
 
-CREATE TABLE IF NOT EXISTS hashcash_solutions (
+CREATE TABLE IF NOT EXISTS solutions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   lid INTEGER,
-  difficulty INTEGER,
+  reward FLOAT,
   challenge CHAR(32),
   nonce INTEGER,
   FOREIGN KEY(lid) REFERENCES locations (id)
