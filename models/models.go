@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS solutions (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_loc_url ON locations(url);
 `
 
-func InitDb(driver, source string) (db *sql.DB, err error) {
+func InitDb(db *sql.DB) (err error) {
 	prepare := func(q string) (stmt *sql.Stmt) {
 		// Pass-through on first error
 		if err != nil {
@@ -29,10 +29,6 @@ func InitDb(driver, source string) (db *sql.DB, err error) {
 		}
 		stmt, err = db.Prepare(q)
 		return stmt
-	}
-	db, err = sql.Open(driver, source)
-	if err != nil {
-		return
 	}
 	_, err = db.Exec(dbSchema)
 	stmtGetLoc = prepare("SELECT * FROM locations WHERE url = ?")

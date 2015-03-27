@@ -101,13 +101,17 @@ func main() {
 		return
 	}
 	logger.Printf("using config,\n%+v\n", cfg)
-	var db *sql.DB
-	db, err = models.InitDb(cfg.Db.Driver, cfg.Db.Source)
+	db, err := sql.Open(cfg.Db.Driver, cfg.Db.Source)
 	if err != nil {
 		fmt.Printf("failed to initialize database - %v\n", err)
 		return
 	}
 	defer db.Close()
+	err = models.InitDb(db)
+	if err != nil {
+		fmt.Printf("failed to setup schema - %v\n", err)
+		return
+	}
 	logger.Printf("initialized database")
 	err = cfg.parseSites()
 	if err != nil {
