@@ -106,6 +106,7 @@ func challengeHandler(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, "invalid system")
 		return
 	}
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	challenge := sys.Challenge(r)
 	cResp := &response{
@@ -122,6 +123,10 @@ func challengeHandler(w http.ResponseWriter, r *http.Request) {
 func solutionHandler(w http.ResponseWriter, r *http.Request) {
 	type request struct {
 	}
+
+	type response struct {
+	}
+
 	if r.Method != "POST" {
 		wrongMethod(w)
 		return
