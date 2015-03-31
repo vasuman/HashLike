@@ -11,14 +11,11 @@ import (
 	"github.com/vasuman/HashLike/pow"
 )
 
-func getRootHandler(staticDir string) http.Handler {
-	const sPrefix = "/static/"
+func getRootHandler() http.Handler {
 	rootMux := http.NewServeMux()
-	rootMux.HandleFunc("/api/count", getCountHandler)
-	rootMux.HandleFunc("/api/challenge", challengeHandler)
-	rootMux.HandleFunc("/api/solution", solutionHandler)
-	staticServer := http.StripPrefix(sPrefix, http.FileServer(http.Dir(staticDir)))
-	rootMux.Handle(sPrefix, staticServer)
+	rootMux.HandleFunc("/count", getCountHandler)
+	rootMux.HandleFunc("/challenge", challengeHandler)
+	rootMux.HandleFunc("/solution", solutionHandler)
 	return rootMux
 }
 

@@ -80,12 +80,10 @@ func setupLogger(logPath string) (*log.Logger, error) {
 func main() {
 	// Command-line arguments
 	var (
-		staticDir  string
 		configPath string
 		logPath    string
 	)
-	flag.StringVar(&configPath, "config", "config.yml", "Path to config file")
-	flag.StringVar(&staticDir, "static", "./static/", "Path to static directory")
+	flag.StringVar(&configPath, "config", "config.example.yml", "Path to config file")
 	flag.StringVar(&logPath, "logfile", "", "Path to log file. Defaults to stdout if not specified")
 	flag.Parse()
 
@@ -118,7 +116,7 @@ func main() {
 		fmt.Printf("error parsing 'allowed_sites' regexes\n%v\n", err)
 		return
 	}
-	handler := getRootHandler(staticDir)
+	handler := getRootHandler()
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	logger.Println("listening on address, ", addr)
 	logger.Println("starting server...")
