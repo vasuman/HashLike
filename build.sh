@@ -4,7 +4,8 @@ mkdir -p out/static
 
 go build -o out/server.exe .
 
-cp client/*.js client/*.html out/static/
-cp -r templates out
+emcc  client/hc_worker.c --pre-js=client/hc-worker.js -o out/static/hc-worker-emc.js -s EXPORTED_FUNCTIONS="['_get_nonce']"
+cp client/hashlike.js out/static/
+
 
 
