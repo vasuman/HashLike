@@ -13,7 +13,7 @@ function HashLike(options) {
 HashLike.prototype.getLikes = function () {
     var self = this,
         urlParam = 'url=' + encodeURIComponent(this.opt.url),
-        powParam = 'pow=' + this.opt.powSystem,
+        powParam = 'sys=' + this.opt.powSystem,
         params = '?' + urlParam + '&' + powParam,
         countURL = this.opt.serverAddr + '/count' + params;
     function loadCback() {
@@ -45,3 +45,4 @@ HashLike.prototype.initWorker = function () {
     this.worker = new Worker(workerFile + '.js');
     this.worker.postMessage('hello');
 }
+
