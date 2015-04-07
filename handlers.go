@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -17,6 +18,12 @@ func getRootHandler() http.Handler {
 	rootMux.HandleFunc("/challenge", challengeHandler)
 	rootMux.HandleFunc("/solution", solutionHandler)
 	return rootMux
+}
+
+func getIp(r *http.Request) []byte {
+	//TODO(vasuman): Check the 'X-Real-IP' and 'X-Forwarded-For' headers.
+	ip := net.ParseIP(r.RemoteAddr)
+	return ip
 }
 
 func badRequest(w http.ResponseWriter, msg string) {
@@ -97,7 +104,6 @@ func challengeHandler(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, "bad json")
 		return
 	}
-	logger.Printf("got %+v from %s\n", cReq, r.RemoteAddr)
 	sys := getSystem(cReq.System)
 	if sys == nil {
 		badRequest(w, "invalid system")
@@ -105,7 +111,8 @@ func challengeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	challenge := sys.Challenge(r)
+	remoteAddr := getIp(r)
+	challenge := sys.Challenge(cReq.URL, remoteAddr)
 	cResp := &response{
 		Challenge: encode(challenge),
 		Expiry:    time.Now().Add(time.Minute * 2),
@@ -119,13 +126,19 @@ func challengeHandler(w http.ResponseWriter, r *http.Request) {
 
 func solutionHandler(w http.ResponseWriter, r *http.Request) {
 	type request struct {
+		Challenge string `json:"challenge"`
+		Nonce     int    `json:"nonce"`
 	}
 
 	type response struct {
+		Ok    bool    `json:"ok"`
+		Value float64 `json:"value"`
+		Error string  `json:"error,omitempty"`
 	}
 
 	if r.Method != "POST" {
 		wrongMethod(w)
 		return
 	}
+
 }

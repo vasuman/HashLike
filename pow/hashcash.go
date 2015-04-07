@@ -4,17 +4,15 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"math"
-	"net"
-	"net/http"
 	"time"
 )
 
 type Hashcash struct{}
 
-func (Hashcash) Challenge(r *http.Request) []byte {
-	ip := net.ParseIP(r.RemoteAddr)
-	timeBytes, _ := time.Now().GobEncode()
-	return append(ip, timeBytes...)
+func (Hashcash) Challenge(url string, remoteAddr []byte) []byte {
+	urlB := []byte(url)
+	encTime, _ := time.Now().GobEncode()
+	return append(append(urlB, remoteAddr...), encTime...)
 }
 
 func countLeadingZeros(h []byte) int {
