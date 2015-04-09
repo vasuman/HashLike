@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/vasuman/HashLike/models"
@@ -30,6 +31,7 @@ type config struct {
 		Domain string
 		Paths  []string
 	} `yaml:"allowed_sites"`
+	ChallengeTimeout int `yaml:"challenge_timeout"`
 }
 
 func (cfg *config) parseSites() error {
@@ -50,6 +52,10 @@ func (cfg *config) parseSites() error {
 		models.AddSite(s)
 	}
 	return nil
+}
+
+func (cfg *config) setTimeout() {
+	challengeTimeout = time.Minute * cfg.ChallengeTimeout
 }
 
 func loadConfig(configPath string) (*config, error) {
@@ -116,10 +122,10 @@ func main() {
 		fmt.Printf("error parsing 'allowed_sites' regexes\n%v\n", err)
 		return
 	}
-	handler := getRootHandler()
+	cfg.setTimeout()
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	logger.Println("listening on address, ", addr)
 	logger.Println("starting server...")
-	err = http.ListenAndServe(addr, handler)
+	err = http.ListenAndServe(addr, handler())
 	logger.Fatal(err)
 }

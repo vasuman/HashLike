@@ -12,7 +12,9 @@ import (
 	"github.com/vasuman/HashLike/pow"
 )
 
-func getRootHandler() http.Handler {
+var challengeTimeout time.Duration
+
+func handler() http.Handler {
 	rootMux := http.NewServeMux()
 	rootMux.HandleFunc("/count", getCountHandler)
 	rootMux.HandleFunc("/challenge", challengeHandler)
@@ -20,8 +22,8 @@ func getRootHandler() http.Handler {
 	return rootMux
 }
 
-func getIp(r *http.Request) []byte {
-	//TODO(vasuman): Check the 'X-Real-IP' and 'X-Forwarded-For' headers.
+func getIP(r *http.Request) []byte {
+	//TODO: Check the 'X-Real-IP' and 'X-Forwarded-For' headers.
 	ip := net.ParseIP(r.RemoteAddr)
 	return ip
 }
@@ -42,15 +44,6 @@ func internalError(w http.ResponseWriter, err error) {
 	code := http.StatusInternalServerError
 	txt := fmt.Sprintf("internal server error - %v", err)
 	http.Error(w, txt, code)
-}
-
-func getSystem(ident string) pow.POW {
-	const hashcash = "HC"
-	switch ident {
-	case hashcash:
-		return new(pow.Hashcash)
-	}
-	return nil
 }
 
 func getCountHandler(w http.ResponseWriter, r *http.Request) {
@@ -104,15 +97,19 @@ func challengeHandler(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, "bad json")
 		return
 	}
-	sys := getSystem(cReq.System)
-	if sys == nil {
+	sys, ok := pow.Systems[cReq.System]
+	if !ok {
 		badRequest(w, "invalid system")
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	remoteAddr := getIp(r)
+	remoteAddr := getIP(r)
+	if remoteAddr == nil {
+		logger.Printf("ERR: request %+v has no IP\n")
+	}
 	challenge := sys.Challenge(cReq.URL, remoteAddr)
+	expiry := time.Now().Add(CacheExpiryDelay)
 	cResp := &response{
 		Challenge: encode(challenge),
 		Expiry:    time.Now().Add(time.Minute * 2),
@@ -120,7 +117,7 @@ func challengeHandler(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
 	err = enc.Encode(cResp)
 	if err != nil {
-		logger.Printf("error encoding response - %v", err)
+		logger.Printf("ERR: encoding response - %v\n", err)
 	}
 }
 

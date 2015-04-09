@@ -7,27 +7,28 @@ import (
 )
 
 var (
-	cLock sync.RWMutex
-	cMap  map[string]float64
+	cntLock = new(sync.RWMutex)
+	cntMap  = make(map[string]float64)
 )
 
+const countSep = ":=:"
+
 func GetCount(url, sys string) (float64, error) {
-	cLock.RLock()
-	v, ok := cMap[url+":-:"+sys]
-	cLock.RUnlock()
+	cntLock.RLock()
+	v, ok := cntMap[url+countSep+sys]
+	cntLock.RUnlock()
 	if ok {
-		return v
+		return v, nil
 	}
 	l, err := models.GetLocation(url)
-	if err == nil {
-
-	} else if err == models.ErrNoSuchLocation {
-
+	if err != nil {
+		return 0, err
 	}
+	// Lookup `solutions`
 }
 
-func Invalidate(url, sys string) {
-	cLock.Lock()
-	delete(cMap, url+":-:"+sys)
-	cLock.Unlock()
+func InvalidateCount(url, sys string) {
+	cntLock.Lock()
+	delete(cntMap, url+":-:"+sys)
+	cntLock.Unlock()
 }
