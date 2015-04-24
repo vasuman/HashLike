@@ -9,13 +9,14 @@ import (
 
 func encodeTime(t time.Time) []byte {
 	tb := make([]byte, 8)
-	binary.BigEndian.PutUint64(tb, t.Unix())
+	unixTime := uint64(t.Unix())
+	binary.BigEndian.PutUint64(tb, unixTime)
 	return tb
 }
 
 type Hashcash struct{}
 
-func (Hashcash) Challenge(url string, addr []byte, when time.Time) []byte {
+func (*Hashcash) Challenge(url string, addr []byte, when time.Time) []byte {
 	b := []byte(url)
 	b = append(b, encodeTime(when)...)
 	return append(b, addr...)
@@ -45,15 +46,17 @@ func countLeadingZeros(h []byte) int {
 	return len(h) * 8
 }
 
-func (Hashcash) Verify(challenge, hash []byte, nonce int) float64 {
+func (*Hashcash) Verify(challenge []byte, nonce int) float64 {
 	nB := make([]byte, 4)
 	binary.BigEndian.PutUint32(nB, uint32(nonce))
-	hC := append(hash, challenge...)
-	b := sha256.Sum256(append(hC, nB...))
+	b := sha256.Sum256(append(challenge, nB...))
 	leadZeros := countLeadingZeros(b[:])
+	if leadZeros == 0 {
+		return 0
+	}
 	return math.Pow(2, float64(leadZeros))
 }
 
-func (Hashcash) Name() {
+func (*Hashcash) Name() string {
 	return "Hashcash"
 }

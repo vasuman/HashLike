@@ -22,6 +22,6 @@ const (
 	HashcashIdent = "HC"
 )
 
-var Systems = map[string]pow{
+var Systems = map[string]POW{
 	HashcashIdent: new(Hashcash),
 }

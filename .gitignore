@@ -3,5 +3,5 @@ out/
 *.swp
 .#*
 
-/a.exe
+/build.bat
 /.dir-locals.el
