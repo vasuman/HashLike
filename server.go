@@ -8,8 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/vasuman/HashLike/models"
@@ -32,30 +30,6 @@ type config struct {
 		Paths  []string
 	} `yaml:"allowed_sites"`
 	ChallengeTimeout int `yaml:"challenge_timeout"`
-}
-
-func (cfg *config) parseSites() error {
-	var err error
-	for _, allowedSite := range cfg.AllowedSites {
-		s := new(models.Site)
-		s.Domain, err = regexp.Compile(allowedSite.Domain)
-		if err != nil {
-			return fmt.Errorf("domain regex (%s) - %v", allowedSite.Domain, err)
-		}
-		for _, path := range allowedSite.Paths {
-			pExp, err := regexp.Compile(path)
-			if err != nil {
-				return fmt.Errorf("path regex (%s) - %v", path, err)
-			}
-			s.Paths = append(s.Paths, pExp)
-		}
-		models.AddSite(s)
-	}
-	return nil
-}
-
-func (cfg *config) setTimeout() {
-	challengeTimeout = time.Minute * cfg.ChallengeTimeout
 }
 
 func loadConfig(configPath string) (*config, error) {
@@ -117,12 +91,6 @@ func main() {
 		return
 	}
 	logger.Printf("initialized database")
-	err = cfg.parseSites()
-	if err != nil {
-		fmt.Printf("error parsing 'allowed_sites' regexes\n%v\n", err)
-		return
-	}
-	cfg.setTimeout()
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	logger.Println("listening on address, ", addr)
 	logger.Println("starting server...")

@@ -5,11 +5,14 @@ import "database/sql"
 const dbSchema = `
 CREATE TABLE IF NOT EXISTS PageGroups (
   ID INTEGER PRIMARY KEY AUTOINCREMENT,
+  Key CHAR(6) UNIQUE,
   Name VARCHAR(25),
   Proto INTEGER,
   System CHAR(2),
   SkipFragment BOOL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS GroupKeyIdx ON PageGroups (Key);
 
 CREATE TABLE IF NOT EXISTS Domains (
   GroupID INTERGER PRIMARY KEY,
@@ -33,29 +36,26 @@ CREATE TABLE IF NOT EXISTS Locations (
   ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS ON Locations (URL);
+CREATE UNIQUE INDEX IF NOT EXISTS LocURLIdx ON Locations (URL);
 
 CREATE TABLE IF NOT EXISTS Challenges (
   ID INTEGER PRIMARY KEY,
   Challenge VARCHAR(64) UNIQUE,
   LocID INTEGER,
-  When TIME,
+  At TIME,
   IP VARCHAR(40),
   UID INTEGER,
   FOREIGN KEY(LocID) REFERENCES Locations (ID)
   ON DELETE CASCADE 
-)
-
-CREATE UNIQUE INDEX IF NOT EXISTS ON Challenges (Challenge);
+);
 
 CREATE TABLE IF NOT EXISTS Solutions (
-  ChallengeID INTEGER,
-  Nonce INT(8),
+  ChallengeID INTEGER PRIMARY KEY,
+  Nonce INTEGER,
   Reward FLOAT,
   FOREIGN KEY(ChallengeID) REFERENCES Challenges (ID)
   ON DELETE CASCADE
-)
-
+);
 `
 
 func InitDb(db *sql.DB) (err error) {
@@ -68,8 +68,8 @@ func InitDb(db *sql.DB) (err error) {
 		return stmt
 	}
 	_, err = db.Exec(dbSchema)
-	stmtAddGroup = prepare("INSERT INTO PageGroups (Name, Proto, System, SkipFragment) VALUES (?, ?, ?, ?)")
-	stmtGetGroup = prepare("SELECT * FROM PageGroups WHERE GroupID = ?")
+	stmtAddGroup = prepare("INSERT INTO PageGroups (Key, Name, Proto, System, SkipFragment) VALUES (?, ?, ?, ?, ?)")
+	stmtGetGroup = prepare("SELECT * FROM PageGroups WHERE Key = ?")
 	stmtAddDomainPattern = prepare("INSERT INTO Domains (GroupID, Pattern) VALUES (?, ?)")
 	stmtAddPathPattern = prepare("INSERT INTO Paths (GroupID, Pattern) VALUES (?, ?)")
 	stmtGetDomainPatterns = prepare("SELECT Pattern FROM Domains WHERE GroupID = ?")

@@ -4,16 +4,17 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"math/rand"
 	"net/url"
 	"regexp"
 )
 
 var (
-	ErrNoSuchGroupID = errors.New("non-existent group ID")
-	ErrInvURL        = errors.New("invalid URL")
-	ErrWrongProto    = errors.New("wrong protocol")
-	ErrNoDomainMatch = errors.New("URL doesn;t match any domain pattern")
-	ErrNoPathMatch   = errors.New("URL doesn't match any path pattern")
+	ErrNoSuchGroupKey = errors.New("non-existent group key")
+	ErrInvURL         = errors.New("invalid URL")
+	ErrInvProto       = errors.New("wrong protocol")
+	ErrNoDomainMatch  = errors.New("URL doesn't match any domain pattern")
+	ErrNoPathMatch    = errors.New("URL doesn't match any path pattern")
 )
 
 var (
@@ -29,17 +30,6 @@ func panicIf(err error) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-type Pattern struct {
-}
-
-func NewPattern(s string, sep char) (*Pattern, error) {
-
-}
-
-func (p *Pattern) Match(t string) bool {
-
 }
 
 type protoSpec int
@@ -61,6 +51,7 @@ const (
 
 type Group struct {
 	ID           int64
+	Key          string
 	Name         string
 	Proto        protoSpec
 	System       string
@@ -69,29 +60,53 @@ type Group struct {
 	Paths        []*regexp.Regexp
 }
 
-func (g *Group) IsValid(loc string) (string, err) {
+func (g *Group) IsValid(loc string) (string, error) {
 	u, err := url.Parse(loc)
 	if err != nil {
 		return "", ErrInvURL
 	}
 	protoValid := false
-	if (g.Proto&ProtoPlain) == 1 && u.Proto == "http" {
+	if (g.Proto&ProtoPlain) == 1 && u.Scheme == "http" {
 		protoValid = true
 	}
-	if (g.Proto&ProtoSecure) == 1 && u.Proto == "https" {
+	if (g.Proto&ProtoSecure) == 1 && u.Scheme == "https" {
 		protoValid = true
 	}
 	if !protoValid {
-		return "", ErrWrongProto
+		return "", ErrInvProto
 	}
 	if g.SkipFragment {
 		u.Fragment = ""
 	}
+	//TODO: check domain and path patterns
 	return u.String(), nil
 }
 
+const (
+	Chars       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	GroupKeyLen = 6
+)
+
+func genGroupKey() string {
+	id := make([]byte, GroupKeyLen)
+	for i := range id {
+		r := rand.Intn(len(Chars))
+		id[i] = Chars[r]
+	}
+	return string(id)
+}
+
+func keyUnique(key string) bool {
+	_, err := stmtGetGroup.Query(key)
+	return err == sql.ErrNoRows
+}
+
 func AddGroup(group *Group) error {
-	res, err := stmtAddGroup.Exec(group.Name, group.Proto, group.System, group.SkipFragment)
+	key := genGroupKey()
+	for !keyUnique(key) {
+		key = genGroupKey()
+	}
+	res, err := stmtAddGroup.Exec(key, group.Name, group.Proto, group.System, group.SkipFragment)
 	if err != nil {
 		return err
 	}
@@ -101,10 +116,17 @@ func AddGroup(group *Group) error {
 	}
 	for _, domain := range group.Domains {
 		_, err = stmtAddDomainPattern.Exec(group.ID, domain.String())
+		if err != nil {
+			return err
+		}
 	}
 	for _, path := range group.Paths {
 		_, err = stmtAddPathPattern.Exec(group.ID, path.String())
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func getPatterns(rows *sql.Rows) (exps []*regexp.Regexp) {
@@ -112,25 +134,31 @@ func getPatterns(rows *sql.Rows) (exps []*regexp.Regexp) {
 		var str string
 		_ = rows.Scan(&str)
 		re := regexp.MustCompile(str)
-		append(exps, re)
+		exps = append(exps, re)
 	}
 	return
 }
 
-func GetGroup(id int64) (*Group, error) {
+func GetGroup(key string) (*Group, error) {
 	g := new(Group)
-	row := stmtGetGroup.QueryRow(id)
-	err := row.Scan(&g.ID, &g.Name, &g.Proto, &g.System, &g.SkipFragment)
-	if err == sql.ErrNoRows {
-		return nil, ErrNoSuchGroupID
+	row := stmtGetGroup.QueryRow(key)
+	err := row.Scan(&g.ID, &g.Key, &g.Name, &g.Proto, &g.System, &g.SkipFragment)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoSuchGroupKey
+		}
+		return nil, err
 	}
-	panicIf(err)
 	dRows, err := stmtGetDomainPatterns.Query(g.ID)
-	panicIf(err)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
 	defer dRows.Close()
 	g.Domains = getPatterns(dRows)
 	pRows, err := stmtGetPathPatterns.Query(g.ID)
-	panicIf(err)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
 	defer pRows.Close()
 	g.Paths = getPatterns(pRows)
 	return g, nil

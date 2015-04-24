@@ -1,43 +1,30 @@
 package main
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
-
-	"github.com/vasuman/HashLike/models"
-	"github.com/vasuman/HashLike/pow"
 )
 
 var challengeTimeout time.Duration
 
-func handler() http.Handler {
-	rootMux := http.NewServeMux()
-	rootMux.HandleFunc("/count", getCountHandler)
-	rootMux.HandleFunc("/challenge", challengeHandler)
-	rootMux.HandleFunc("/solution", solutionHandler)
-	return rootMux
-}
-
 func getIP(r *http.Request) []byte {
-	//TODO: Check the 'X-Real-IP' and 'X-Forwarded-For' headers.
 	ip := net.ParseIP(r.RemoteAddr)
+	//TODO: Check the 'X-Real-IP' and 'X-Forwarded-For' headers.
 	return ip
 }
 
-func badRequest(w http.ResponseWriter, msg string) {
-	w.Header().Add("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusBadRequest)
-	fmt.Fprintf(w, "bad request: %s", msg)
-}
-
-func wrongMethod(w http.ResponseWriter) {
-	code := http.StatusMethodNotAllowed
-	txt := "method not allowed"
-	http.Error(w, txt, code)
+func method(meth string, fn http.HandlerFunc) http.HandlerFunc {
+	txt := fmt.Sprintf("method %s not allowed", meth)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != meth {
+			code := http.StatusMethodNotAllowed
+			http.Error(w, txt, code)
+			return
+		}
+		fn(w, r)
+	}
 }
 
 func internalError(w http.ResponseWriter, err error) {
@@ -46,96 +33,55 @@ func internalError(w http.ResponseWriter, err error) {
 	http.Error(w, txt, code)
 }
 
-func getCountHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		wrongMethod(w)
-		return
-	}
-	query := r.URL.Query()
-	url := query.Get("url")
-	if url == "" {
-		badRequest(w, "need a url")
-		return
-	}
-	sIdent := query.Get("sys")
-	if sIdent == "" {
-		badRequest(w, "need a sys")
-		return
-	}
-	loc, err := models.GetLocation(url)
-	if err != nil {
-		badRequest(w, "url doesn't exist")
-		return
-	}
-	fmt.Fprintf(w, "%x", loc.Hash)
+func handler() http.Handler {
+	r := http.NewServeMux()
+	d := http.NewServeMux()
+	r.HandleFunc("/", root)
+	d.HandleFunc("/dash/", method("GET", showDashboard))
+	d.HandleFunc("/dash/group/show", method("GET", showGroup))
+	d.HandleFunc("/dash/group/add", method("POST", addGroup))
+	d.HandleFunc("/dash/group/edit", method("POST", editGroup))
+	//TODO: dashboard authentication
+	r.Handle("/dash/", d)
+	a := http.NewServeMux()
+	a.HandleFunc("/api/count", method("GET", getCount))
+	a.HandleFunc("/api/like", method("POST", newChallenge))
+	a.HandleFunc("/api/verify", method("POST", verifySoln))
+	r.Handle("/api/", a)
+	//TODO: url public/private
+	r.HandleFunc("/url", method("GET", showURL))
+	return r
 }
 
-func challengeHandler(w http.ResponseWriter, r *http.Request) {
-	encode := func(b []byte) string {
-		return base64.StdEncoding.EncodeToString(b)
-	}
-
-	type request struct {
-		URL    string `json:"url"`
-		System string `json:"system"`
-	}
-
-	type response struct {
-		Expiry time.Time `json:"expires"`
-		// Base64 encoded byte slice
-		Challenge string `json:"challenge"`
-	}
-
-	if r.Method != "POST" {
-		wrongMethod(w)
+func root(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	dec := json.NewDecoder(r.Body)
-	cReq := new(request)
-	err := dec.Decode(cReq)
-	if err != nil {
-		badRequest(w, "bad json")
-		return
-	}
-	sys, ok := pow.Systems[cReq.System]
-	if !ok {
-		badRequest(w, "invalid system")
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	remoteAddr := getIP(r)
-	if remoteAddr == nil {
-		logger.Printf("ERR: request %+v has no IP\n")
-	}
-	challenge := sys.Challenge(cReq.URL, remoteAddr)
-	expiry := time.Now().Add(CacheExpiryDelay)
-	cResp := &response{
-		Challenge: encode(challenge),
-		Expiry:    time.Now().Add(time.Minute * 2),
-	}
-	enc := json.NewEncoder(w)
-	err = enc.Encode(cResp)
-	if err != nil {
-		logger.Printf("ERR: encoding response - %v\n", err)
-	}
+	fmt.Fprintf(w, "#L")
 }
 
-func solutionHandler(w http.ResponseWriter, r *http.Request) {
-	type request struct {
-		Challenge string `json:"challenge"`
-		Nonce     int    `json:"nonce"`
-	}
+func showDashboard(w http.ResponseWriter, r *http.Request) {
 
-	type response struct {
-		Ok    bool    `json:"ok"`
-		Value float64 `json:"value"`
-		Error string  `json:"error,omitempty"`
-	}
+}
 
-	if r.Method != "POST" {
-		wrongMethod(w)
-		return
-	}
+func showGroup(w http.ResponseWriter, r *http.Request) {
+}
 
+func addGroup(w http.ResponseWriter, r *http.Request) {
+}
+
+func editGroup(w http.ResponseWriter, r *http.Request) {
+}
+
+func showURL(w http.ResponseWriter, r *http.Request) {
+}
+
+func getCount(w http.ResponseWriter, r *http.Request) {
+}
+
+func newChallenge(w http.ResponseWriter, r *http.Request) {
+}
+
+func verifySoln(w http.ResponseWriter, r *http.Request) {
 }
