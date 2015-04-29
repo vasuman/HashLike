@@ -1,12 +1,11 @@
 package models
 
 import (
-	"database/sql"
-	"database/sql/driver"
 	"errors"
 	"math/rand"
 	"net/url"
-	"regexp"
+
+	"github.com/boltdb/bolt"
 )
 
 var (
@@ -17,15 +16,6 @@ var (
 	ErrNoPathMatch    = errors.New("URL doesn't match any path pattern")
 )
 
-var (
-	stmtAddDomainPattern  *sql.Stmt
-	stmtGetDomainPatterns *sql.Stmt
-	stmtAddPathPattern    *sql.Stmt
-	stmtGetPathPatterns   *sql.Stmt
-	stmtAddGroup          *sql.Stmt
-	stmtGetGroup          *sql.Stmt
-)
-
 func panicIf(err error) {
 	if err != nil {
 		panic(err)
@@ -34,15 +24,6 @@ func panicIf(err error) {
 
 type protoSpec int
 
-func (p *protoSpec) Scan(value interface{}) error {
-	*p = protoSpec(value.(int))
-	return nil
-}
-
-func (p protoSpec) Value() (driver.Value, error) {
-	return int(p), nil
-}
-
 const (
 	ProtoPlain protoSpec = iota + 1
 	ProtoSecure
@@ -50,14 +31,11 @@ const (
 )
 
 type Group struct {
-	ID           int64
 	Key          string
 	Name         string
 	Proto        protoSpec
 	System       string
 	SkipFragment bool
-	Domains      []*regexp.Regexp
-	Paths        []*regexp.Regexp
 }
 
 func (g *Group) IsValid(loc string) (string, error) {
@@ -78,88 +56,73 @@ func (g *Group) IsValid(loc string) (string, error) {
 	if g.SkipFragment {
 		u.Fragment = ""
 	}
-	//TODO: check domain and path patterns
+	//TODO: verify path and domain
 	return u.String(), nil
 }
 
 const (
-	Chars       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	GroupKeyLen = 6
+	chars       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	groupKeyLen = 6
 )
 
 func genGroupKey() string {
-	id := make([]byte, GroupKeyLen)
+	id := make([]byte, groupKeyLen)
 	for i := range id {
-		r := rand.Intn(len(Chars))
-		id[i] = Chars[r]
+		r := rand.Intn(len(chars))
+		id[i] = chars[r]
 	}
 	return string(id)
 }
 
-func keyUnique(key string) bool {
-	_, err := stmtGetGroup.Query(key)
-	return err == sql.ErrNoRows
+func keyExists(key string) bool {
+	//TODO
+	var exists bool
+	db.View(func(tx *bolt.Tx) error {
+		groupBucket := tx.Bucket(groupBucKey)
+		v := groupBucket.Get([]byte(key))
+		if v == nil {
+			exists = false
+		} else {
+			exists = true
+		}
+		return nil
+	})
+	return exists
 }
 
-func AddGroup(group *Group) error {
-	key := genGroupKey()
-	for !keyUnique(key) {
-		key = genGroupKey()
-	}
-	res, err := stmtAddGroup.Exec(key, group.Name, group.Proto, group.System, group.SkipFragment)
-	if err != nil {
-		return err
-	}
-	group.ID, err = res.LastInsertId()
-	if err != nil {
-		return err
-	}
-	for _, domain := range group.Domains {
-		_, err = stmtAddDomainPattern.Exec(group.ID, domain.String())
+func UpdateGroup(group *Group) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		groupBucket := tx.Bucket(groupBucKey)
+		v, err := encGob(group)
 		if err != nil {
 			return err
 		}
-	}
-	for _, path := range group.Paths {
-		_, err = stmtAddPathPattern.Exec(group.ID, path.String())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func getPatterns(rows *sql.Rows) (exps []*regexp.Regexp) {
-	for rows.Next() {
-		var str string
-		_ = rows.Scan(&str)
-		re := regexp.MustCompile(str)
-		exps = append(exps, re)
-	}
-	return
+		return groupBucket.Put([]byte(group.Key), v)
+	})
+	return err
 }
 
 func GetGroup(key string) (*Group, error) {
 	g := new(Group)
-	row := stmtGetGroup.QueryRow(key)
-	err := row.Scan(&g.ID, &g.Key, &g.Name, &g.Proto, &g.System, &g.SkipFragment)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrNoSuchGroupKey
+	err := db.View(func(tx *bolt.Tx) error {
+		groupBucket := tx.Bucket(groupBucKey)
+		v := groupBucket.Get([]byte(key))
+		if v == nil {
+			return ErrNoSuchGroupKey
 		}
+		return decGob(v, g)
+	})
+	if err != nil {
 		return nil, err
 	}
-	dRows, err := stmtGetDomainPatterns.Query(g.ID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
-	defer dRows.Close()
-	g.Domains = getPatterns(dRows)
-	pRows, err := stmtGetPathPatterns.Query(g.ID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
-	defer pRows.Close()
-	g.Paths = getPatterns(pRows)
 	return g, nil
+}
+
+func AddGroup(group *Group) error {
+	key := genGroupKey()
+	for keyExists(key) {
+		key = genGroupKey()
+	}
+	group.Key = key
+	return UpdateGroup(group)
 }
