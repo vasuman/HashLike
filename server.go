@@ -1,45 +1,18 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/boltdb/bolt"
+	"github.com/vasuman/HashLike/handlers"
 	"github.com/vasuman/HashLike/models"
-	"gopkg.in/yaml.v2"
 )
 
-var (
-	logger *log.Logger
-	cfg    *config
-)
-
-type config struct {
-	Port int
-	Db   struct {
-		Driver string
-		Source string
-	}
-	AllowedSites []struct {
-		Domain string
-		Paths  []string
-	} `yaml:"allowed_sites"`
-	ChallengeTimeout int `yaml:"challenge_timeout"`
-}
-
-func loadConfig(configPath string) (*config, error) {
-	b, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-	cfg := new(config)
-	return cfg, yaml.Unmarshal(b, cfg)
-}
+var logger *log.Logger
 
 func setupLogger(logPath string) (*log.Logger, error) {
 	var logFile *os.File
@@ -57,29 +30,30 @@ func setupLogger(logPath string) (*log.Logger, error) {
 	return log.New(logFile, "", lFlags), nil
 }
 
-func main() {
-	// Command-line arguments
-	var (
-		configPath string
-		logPath    string
-	)
-	flag.StringVar(&configPath, "config", "config.example.yml", "Path to config file")
-	flag.StringVar(&logPath, "logfile", "", "Path to log file. Defaults to stdout if not specified")
-	flag.Parse()
+// Command-line arguments
+var (
+	logPath string
+	dbPath  string
+	port    int
+)
 
+func init() {
+	flag.IntVar(&port, "port", 8080, "Port to listen on")
+	flag.StringVar(&logPath, "logfile", "", "Path to log file. Defaults to stdout if not specified")
+	flag.StringVar(&dbPath, "db", "test.db", "Path to bolt database")
+	flag.Parse()
+}
+
+const dbFileMode = 0660
+
+func main() {
 	var err error
-	cfg, err = loadConfig(configPath)
-	if err != nil {
-		fmt.Printf("failed to load config - %v\n", err)
-		return
-	}
 	logger, err = setupLogger(logPath)
 	if err != nil {
 		fmt.Printf("failed to setup logger - %v\n", err)
 		return
 	}
-	logger.Printf("using config,\n%+v\n", cfg)
-	db, err := sql.Open(cfg.Db.Driver, cfg.Db.Source)
+	db, err := bolt.Open(dbPath, dbFileMode, bolt.DefaultOptions)
 	if err != nil {
 		fmt.Printf("failed to initialize database - %v\n", err)
 		return
@@ -87,13 +61,13 @@ func main() {
 	defer db.Close()
 	err = models.InitDb(db)
 	if err != nil {
-		fmt.Printf("failed to setup schema - %v\n", err)
+		fmt.Printf("failed to setup database - %v\n", err)
 		return
 	}
-	logger.Printf("initialized database")
-	addr := fmt.Sprintf(":%d", cfg.Port)
+	logger.Printf("setup database")
+	addr := fmt.Sprintf(":%d", port)
 	logger.Println("listening on address, ", addr)
 	logger.Println("starting server...")
-	err = http.ListenAndServe(addr, handler())
+	err = http.ListenAndServe(addr, handlers.GetRootHandler())
 	logger.Fatal(err)
 }

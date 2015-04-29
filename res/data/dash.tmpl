@@ -1,0 +1,21 @@
+{{ define "dashboard" }}
+{{ template "header" "Dashboard" }}
+<div id="main">
+  <table>
+    <caption> Groups </caption>
+    <thead>
+      <tr> </tr>
+    </thead>
+    <tbody>
+      {{ range $idx, $group := .Groups }}
+      <tr>
+        <td> {{ $idx | printf "#%d." }} </td>
+        <td> {{ $group.Key }} </td>
+        <td> <a href="group/show?key={{ $group.Key }}"> {{ $group.Name }} </a> </td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>
+{{ template "footer" }}
+{{ end }}

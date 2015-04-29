@@ -1,11 +1,5 @@
 port: 8080
-db:
-        driver: sqlite3
-        source: ":memory:"
-# Use regular expressions
-allowed_sites: 
-        - domain: ".*"
-          paths:
-                - ".*"
-# In minutes
-challenge_timeout: 2 
+auth:
+        username: dummy
+        password: hello123
+challenge_timeout: 2 # In minutes

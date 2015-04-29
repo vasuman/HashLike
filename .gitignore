@@ -3,5 +3,5 @@ out/
 *.swp
 .#*
 
-/build.bat
-/.dir-locals.el
+**/.dir-locals.el
+/res/res_gen.go
