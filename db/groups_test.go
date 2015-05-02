@@ -1,4 +1,4 @@
-package models
+package db
 
 import (
 	"os"
@@ -18,7 +18,7 @@ func failIf(t *testing.T, err error) {
 func TestMain(m *testing.M) {
 	db, err := bolt.Open(testDbPath, 0660, nil)
 	panicIf(err)
-	err = InitDb(db)
+	err = Init(db)
 	panicIf(err)
 	r := m.Run()
 	db.Close()

@@ -1,4 +1,4 @@
-package models
+package db
 
 import (
 	"bytes"
@@ -38,7 +38,7 @@ func setupBuckets(tx *bolt.Tx) error {
 	return err
 }
 
-func InitDb(dbInst *bolt.DB) error {
+func Init(dbInst *bolt.DB) error {
 	db = dbInst
 	err := db.Update(setupBuckets)
 	return err

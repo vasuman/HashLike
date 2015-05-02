@@ -14,14 +14,10 @@ type POW interface {
 	// zero.
 	Verify(challenge []byte, nonce int) float64
 
-	// Returns the name of the system
-	Name() string
+	// Returns a string describing the system
+	Desc() string
 }
 
-const (
-	HashcashIdent = "HC"
-)
-
 var Systems = map[string]POW{
-	HashcashIdent: new(Hashcash),
+	"HC": new(Hashcash),
 }

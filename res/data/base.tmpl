@@ -1,12 +1,15 @@
 {{ define "header" }}
 <html>
-    <head>
-        <title> {{ . }} </title>
-    </head>
-    <body>
-        {{ end }}
-        
-        {{ define "footer" }}
+  <head>
+    <title> {{ .Title }} </title>
+    {{ range .Styles }}
+    <link rel="stylesheet" href="/css/{{ . }}"
+    {{ end }}
+  </head>
+  <body>
+    {{ end }}
+    
+    {{ define "footer" }}
   </body>
 </html>
 {{ end }}

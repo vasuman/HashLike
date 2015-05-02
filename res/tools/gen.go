@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	Template = template.New("<toplevel>")
+	Template = template.New("")
 )
 
 func Setup() {

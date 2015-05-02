@@ -1,7 +1,8 @@
-package models
+package db
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"net/url"
 
@@ -24,6 +25,30 @@ func panicIf(err error) {
 
 type protoSpec int
 
+func ProtoFromString(str string) (protoSpec, error) {
+	switch str {
+	case "plain":
+		return ProtoPlain, nil
+	case "secure":
+		return ProtoSecure, nil
+	case "both":
+		return ProtoBoth, nil
+	}
+	return 0, fmt.Errorf("unknown protocol %s", str)
+}
+
+func (p protoSpec) String() string {
+	switch p {
+	case ProtoPlain:
+		return "Plain"
+	case ProtoSecure:
+		return "Secure"
+	case ProtoBoth:
+		return "Both"
+	}
+	return "Unknown"
+}
+
 const (
 	ProtoPlain protoSpec = iota + 1
 	ProtoSecure
@@ -36,6 +61,8 @@ type Group struct {
 	Proto        protoSpec
 	System       string
 	SkipFragment bool
+	Paths        []*PathPattern
+	Domains      []*DomainPattern
 }
 
 func (g *Group) IsValid(loc string) (string, error) {
@@ -55,6 +82,27 @@ func (g *Group) IsValid(loc string) (string, error) {
 	}
 	if g.SkipFragment {
 		u.Fragment = ""
+	}
+	var match bool
+	match = false
+	for _, domain := range g.Domains {
+		if domain.Matches(u.Host) {
+			match = true
+			break
+		}
+	}
+	if !match {
+		return "", ErrNoDomainMatch
+	}
+	match = false
+	for _, path := range g.Paths {
+		if path.Matches(u.Path) {
+			match = true
+			break
+		}
+	}
+	if !match {
+		return "", ErrNoPathMatch
 	}
 	//TODO: verify path and domain
 	return u.String(), nil
@@ -125,4 +173,22 @@ func AddGroup(group *Group) error {
 	}
 	group.Key = key
 	return UpdateGroup(group)
+}
+
+func ListGroups() ([]*Group, error) {
+	gs := make([]*Group, 0)
+	err := db.View(func(tx *bolt.Tx) error {
+		groupBucket := tx.Bucket(groupBucKey)
+		err := groupBucket.ForEach(func(k, v []byte) error {
+			g := new(Group)
+			err := decGob(v, g)
+			if err != nil {
+				return err
+			}
+			gs = append(gs, g)
+			return nil
+		})
+		return err
+	})
+	return gs, err
 }

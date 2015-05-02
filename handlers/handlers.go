@@ -1,32 +1,39 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"log"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/vasuman/HashLike/res"
 )
 
-var challengeTimeout time.Duration
+var logger *log.Logger
 
 func getIP(r *http.Request) []byte {
 	ip := net.ParseIP(r.RemoteAddr)
-	//TODO: Check the 'X-Real-IP' and 'X-Forwarded-For' headers.
+	//TODO: check the 'X-Real-IP' and 'X-Forwarded-For' headers.
 	return ip
 }
 
 func method(meth string, fn http.HandlerFunc) http.HandlerFunc {
-	txt := fmt.Sprintf("method %s not allowed here", meth)
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != meth {
 			code := http.StatusMethodNotAllowed
+			txt := fmt.Sprintf("method %s not allowed here", r.Method)
 			http.Error(w, txt, code)
 			return
 		}
 		fn(w, r)
 	}
+}
+
+func badRequest(w http.ResponseWriter, msg string) {
+	code := http.StatusBadRequest
+	http.Error(w, "bad request: "+msg, code)
 }
 
 func internalError(w http.ResponseWriter, err error) {
@@ -35,14 +42,19 @@ func internalError(w http.ResponseWriter, err error) {
 	http.Error(w, txt, code)
 }
 
-func renderTmpl(w http.ResponseWriter, name string, ctx interface{}) {
-	err := res.Template.ExecuteTemplate(w, name, ctx)
+func renderTemplate(w http.ResponseWriter, name string, ctx interface{}) {
+	var b bytes.Buffer
+	err := res.Template.ExecuteTemplate(&b, name, ctx)
 	if err != nil {
+		logger.Printf("error rendering template:\n%v\n", err)
 		internalError(w, err)
+		return
 	}
+	io.Copy(w, &b)
 }
 
-func GetRootHandler() http.Handler {
+func GetRootHandler(logInst *log.Logger) http.Handler {
+	logger = logInst
 	res.Setup()
 	r := http.NewServeMux()
 	d := http.NewServeMux()
@@ -71,27 +83,5 @@ func root(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "#L")
 }
 
-func showDashboard(w http.ResponseWriter, r *http.Request) {
-	renderTmpl(w, "dashboard", nil)
-}
-
-func showGroup(w http.ResponseWriter, r *http.Request) {
-}
-
-func addGroup(w http.ResponseWriter, r *http.Request) {
-}
-
-func editGroup(w http.ResponseWriter, r *http.Request) {
-}
-
 func showURL(w http.ResponseWriter, r *http.Request) {
-}
-
-func getCount(w http.ResponseWriter, r *http.Request) {
-}
-
-func newChallenge(w http.ResponseWriter, r *http.Request) {
-}
-
-func verifySoln(w http.ResponseWriter, r *http.Request) {
 }

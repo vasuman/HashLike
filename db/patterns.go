@@ -1,4 +1,4 @@
-package models
+package db
 
 import (
 	"errors"
@@ -11,36 +11,8 @@ const (
 	DomainSep = "."
 )
 
-/*
-type Validator struct {
-	Paths   []PathPattern
-	Domains []DomainPattern
-}
-
-func (p *Validator) MatchesAny(u url.URL) bool {
-	domMatch := false
-	for _, dom := range p.Domains {
-		if dom.Matches(u.Domain) {
-			domMatch = true
-			break
-		}
-	}
-	if !domMatch {
-		return false
-	}
-	pathMatch := false
-	for _, path := range p.Paths {
-		if path.Matches(u.Path) {
-			pathMatch = true
-			break
-		}
-	}
-	return pathMatch
-}
-*/
-
 type PathPattern struct {
-	Parts    []*partMatcher
+	Parts    []*PartMatcher
 	Complete bool
 }
 
@@ -81,7 +53,33 @@ func ParsePath(s string) (*PathPattern, error) {
 }
 
 type DomainPattern struct {
-	Parts []partMatcher
+	Parts []*PartMatcher
+}
+
+func (d *DomainPattern) Matches(domain string) bool {
+	parts := strings.Split(domain, DomainSep)
+	if len(parts) != len(d.Parts) {
+		return false
+	}
+	for i, pm := range d.Parts {
+		if !pm.Match(parts[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func ParseDomain(s string) (*DomainPattern, error) {
+	d := new(DomainPattern)
+	pts := strings.Split(s, DomainSep)
+	for _, pt := range pts {
+		part, err := parsePart(pt)
+		if err != nil {
+			return nil, err
+		}
+		d.Parts = append(d.Parts, part)
+	}
+	return d, nil
 }
 
 const (
@@ -93,12 +91,12 @@ const (
 	exactMatch
 )
 
-type partMatcher struct {
+type PartMatcher struct {
 	Kind  byte
 	Param string
 }
 
-func (p *partMatcher) Match(target string) bool {
+func (p *PartMatcher) Match(target string) bool {
 	switch p.Kind {
 	case allMatch:
 		return true
@@ -116,8 +114,8 @@ func (p *partMatcher) Match(target string) bool {
 	return false
 }
 
-func parsePart(p string) (pm *partMatcher, err error) {
-	pm = new(partMatcher)
+func parsePart(p string) (pm *PartMatcher, err error) {
+	pm = new(PartMatcher)
 	if len(p) == 0 {
 		pm.Kind = emptyMatch
 		return

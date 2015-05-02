@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/boltdb/bolt"
+	"github.com/vasuman/HashLike/db"
 	"github.com/vasuman/HashLike/handlers"
-	"github.com/vasuman/HashLike/models"
 )
 
 var logger *log.Logger
@@ -53,13 +53,13 @@ func main() {
 		fmt.Printf("failed to setup logger - %v\n", err)
 		return
 	}
-	db, err := bolt.Open(dbPath, dbFileMode, bolt.DefaultOptions)
+	dbInst, err := bolt.Open(dbPath, dbFileMode, bolt.DefaultOptions)
 	if err != nil {
 		fmt.Printf("failed to initialize database - %v\n", err)
 		return
 	}
-	defer db.Close()
-	err = models.InitDb(db)
+	defer dbInst.Close()
+	err = db.Init(dbInst)
 	if err != nil {
 		fmt.Printf("failed to setup database - %v\n", err)
 		return
@@ -68,6 +68,6 @@ func main() {
 	addr := fmt.Sprintf(":%d", port)
 	logger.Println("listening on address, ", addr)
 	logger.Println("starting server...")
-	err = http.ListenAndServe(addr, handlers.GetRootHandler())
+	err = http.ListenAndServe(addr, handlers.GetRootHandler(logger))
 	logger.Fatal(err)
 }

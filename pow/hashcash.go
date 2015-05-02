@@ -57,6 +57,6 @@ func (*Hashcash) Verify(challenge []byte, nonce int) float64 {
 	return math.Pow(2, float64(leadZeros))
 }
 
-func (*Hashcash) Name() string {
-	return "Hashcash"
+func (*Hashcash) Desc() string {
+	return "Hashcash using SHA-256"
 }

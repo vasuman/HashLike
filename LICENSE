@@ -1,6 +1,9 @@
+The files "client/sha2.c" and "client/sha2.h" have been taken from the cgminer
+source tree and are are licensed separately.
+
 The MIT License (MIT)
 
-Copyright (c) [year] [fullname]
+Copyright (c) 2015 Vasuman Ravichandran
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
