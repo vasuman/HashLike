@@ -1,4 +1,4 @@
-package handlers
+package routes
 
 import (
 	"bytes"
@@ -7,9 +7,12 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/vasuman/HashLike/res"
 )
+
+const stylePrefix = "/styles/"
 
 var logger *log.Logger
 
@@ -37,6 +40,7 @@ func badRequest(w http.ResponseWriter, msg string) {
 }
 
 func internalError(w http.ResponseWriter, err error) {
+	logger.Printf("error: %v\n", err)
 	code := http.StatusInternalServerError
 	txt := fmt.Sprintf("internal server error - %v", err)
 	http.Error(w, txt, code)
@@ -59,12 +63,13 @@ func GetRootHandler(logInst *log.Logger) http.Handler {
 	r := http.NewServeMux()
 	d := http.NewServeMux()
 	r.HandleFunc("/", root)
-	d.HandleFunc("/dash/", method("GET", showDashboard))
-	d.HandleFunc("/dash/group/show", method("GET", showGroup))
-	d.HandleFunc("/dash/group/add", method("POST", addGroup))
-	d.HandleFunc("/dash/group/edit", method("POST", editGroup))
+	d.HandleFunc("/group/", method("GET", listGroups))
+	d.HandleFunc("/group/show", method("GET", showGroup))
+	d.HandleFunc("/group/add", method("POST", addGroup))
+	d.HandleFunc("/group/patterns", method("POST", setPatterns))
+	d.HandleFunc("/group/check", method("POST", checkURL))
 	//TODO: dashboard authentication
-	r.Handle("/dash/", d)
+	r.Handle("/group/", d)
 	a := http.NewServeMux()
 	a.HandleFunc("/api/count", method("GET", getCount))
 	a.HandleFunc("/api/like", method("POST", newChallenge))
@@ -72,6 +77,7 @@ func GetRootHandler(logInst *log.Logger) http.Handler {
 	r.Handle("/api/", a)
 	//TODO: url public/private
 	r.HandleFunc("/url", method("GET", showURL))
+	r.HandleFunc(stylePrefix, method("GET", serveStyle))
 	return r
 }
 
@@ -81,6 +87,17 @@ func root(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "#L")
+}
+
+func serveStyle(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, stylePrefix)
+	s, ok := res.Styles[path]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Add("Content-Type", "text/css")
+	w.Write(s)
 }
 
 func showURL(w http.ResponseWriter, r *http.Request) {

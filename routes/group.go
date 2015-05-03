@@ -1,4 +1,4 @@
-package handlers
+package routes
 
 import (
 	"net/http"
@@ -7,35 +7,58 @@ import (
 	"github.com/vasuman/HashLike/pow"
 )
 
-func getSystems() (ret [][]string) {
-	for k, v := range pow.Systems {
-		ret = append(ret, []string{k, v.Desc()})
-	}
-	return
+type headerParams struct {
+	Title  string
+	Styles []string
 }
 
-type HeaderParams struct {
-}
-
-func showDashboard(w http.ResponseWriter, r *http.Request) {
+func listGroups(w http.ResponseWriter, r *http.Request) {
 	type dashParams struct {
-		Header  struct{}
+		Header  headerParams
 		Groups  []*db.Group
-		Systems [][]string
+		Systems map[string]string
 	}
-	params := new(dashParams)
-	var err error
-	params.Groups, err = db.ListGroups()
-	params.Systems = getSystems()
+	groups, err := db.ListGroups()
 	if err != nil {
 		internalError(w, err)
 		return
 	}
-	renderTemplate(w, "dashboard", params)
+	params := &dashParams{
+		headerParams{
+			"Groups",
+			[]string{"group"},
+		},
+		groups,
+		pow.Desc,
+	}
+	renderTemplate(w, "groupList", params)
 }
 
 func showGroup(w http.ResponseWriter, r *http.Request) {
-
+	type showGroupParams struct {
+		Header headerParams
+		Group  *db.Group
+	}
+	q := r.URL.Query()
+	key := q.Get("key")
+	if key == "" {
+		badRequest(w, "need a valid 'key'")
+		return
+	}
+	params := &showGroupParams{
+		headerParams{
+			"Group",
+			[]string{"group"},
+		},
+		nil,
+	}
+	var err error
+	params.Group, err = db.GetGroup(key)
+	if err != nil {
+		internalError(w, err)
+		return
+	}
+	renderTemplate(w, "groupShow", params)
 }
 
 func addGroup(w http.ResponseWriter, r *http.Request) {
@@ -58,8 +81,8 @@ func addGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g.Proto = proto
-	if form.Get("skip-fragment") != "" {
-		g.SkipFragment = true
+	if form.Get("strip-fragment") != "" {
+		g.StripFragment = true
 	}
 	sys := form.Get("sys")
 	if _, ok := pow.Systems[sys]; !ok {
@@ -76,5 +99,8 @@ func addGroup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "show?key="+g.Key, http.StatusSeeOther)
 }
 
-func editGroup(w http.ResponseWriter, r *http.Request) {
+func setPatterns(w http.ResponseWriter, r *http.Request) {
+}
+
+func checkURL(w http.ResponseWriter, r *http.Request) {
 }

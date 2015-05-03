@@ -9,7 +9,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/vasuman/HashLike/db"
-	"github.com/vasuman/HashLike/handlers"
+	"github.com/vasuman/HashLike/routes"
 )
 
 var logger *log.Logger
@@ -68,6 +68,6 @@ func main() {
 	addr := fmt.Sprintf(":%d", port)
 	logger.Println("listening on address, ", addr)
 	logger.Println("starting server...")
-	err = http.ListenAndServe(addr, handlers.GetRootHandler(logger))
+	err = http.ListenAndServe(addr, routes.GetRootHandler(logger))
 	logger.Fatal(err)
 }

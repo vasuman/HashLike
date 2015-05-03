@@ -1,0 +1,129 @@
+{{ define "groupList" }}
+{{ template "header" .Header }}
+<div id="main">
+  <table class="groups">
+    <caption> Groups </caption>
+    <thead>
+      <tr>
+        <th class="key-column"> Key </th>
+        <th class="name-column"> Name </th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .Groups }}
+      <tr>
+        <td> <a href="show?key={{ .Key }}"> {{ .Key }} </a> </td>
+        <td> {{ .Name }} </td>        
+      </tr>
+      {{ else }}
+      <tr>
+        <td class="message-row" colspan="2">
+          None
+        </td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  <form action="group/add" method="post">
+    <fieldset>
+      <legend>New Group</legend>
+
+      <div class="form-field">
+        <label for="name-text-input">Name</label>
+        <input id="name-text-input" name="name" type="text"/>
+      </div>
+
+      <div class="form-field">
+        <label for="proto-selector">Protocol</label>
+        <select id="proto-selector" name="proto">
+          <option value="secure">Secure</option>
+          <option value="plain">Plain</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label for="fragment-checkbox">Strip fragment</label>
+        <input id="fragment-checkbox" type="checkbox" name="strip-fragment"/>
+      </div>
+
+      <div class="form-field">
+        <label for="system-selector">Proof-of-work system</label>
+        <select id="system-selector" name="sys">
+          {{ range $key, $desc := .Systems }}
+          <option value="{{ $key }}"> {{ $desc }} </option>
+          {{ end }}
+        </select>
+      </div>
+
+      <div class="form-field form-submit">
+        <input type="submit" value="Add"/>
+      </div>
+
+    </fieldset>
+  </form>
+</div>
+{{ template "footer" }}
+{{ end }}
+
+{{ define "groupShow" }}
+{{ template "header" .Header }}
+{{ with .Group }}
+<div class="main">
+  <div class="group-name">
+    Group "{{ .Name }}"
+  </div>
+
+  <div class="group-key">
+      {{ .Key }}
+  </div>
+
+  <div class="group-info">
+    <span class="label">Protocols -</span>
+    <div class="group-proto">
+      {{ with .Proto }}
+      <span class="proto-{{ .SupportsPlain }}"> Plain </span>
+      <span class="proto-{{ .SupportsSecure }}"> Secure </span>
+      {{ end }}
+    </div>
+  </div>
+
+  <div class="group-info">
+    <span class="label">Strip fragment -</span> {{ .StripFragment | yesOrNo }}
+  </div>
+
+  <div class="group-info">
+    <span class="label">Proof-of-work system -</span> {{ .System | sysDesc }}
+  </div>
+
+  <form action="patterns" method="post">
+    <input type="hidden" name="key" value="{{ .Key }}"/>
+    <fieldset>
+      <legend> Patterns </legend>
+      <div class="pattern-area">
+        <label for="domain-patterns"> Domains </label>
+        <textarea id="domain-patterns" cols="50" rows="10"> </textarea>
+      </div>
+      <div class="pattern-area">
+        <label for="path-patterns"> Paths </label>
+        <textarea id="path-patterns" cols="50" rows="10"> </textarea>
+      </div>
+      <div class="form-submit">
+        <input type="submit" value="Save"/>
+      </div>
+    </fieldset>
+  </form>
+
+  <form action="check" method="post">
+    <input type="hidden" name="key" value="{{ .Key }}"/>
+    <fieldset>
+      <legend> Check URL </legend>
+      <input type="text" name="url"/>
+      <div class="form-submit">
+        <input type="submit" value="Check"/>
+    </fieldset>
+  </form>
+
+</div>
+{{ end }}
+{{ end }}

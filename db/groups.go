@@ -25,6 +25,12 @@ func panicIf(err error) {
 
 type protoSpec int
 
+const (
+	ProtoPlain protoSpec = iota + 1
+	ProtoSecure
+	ProtoBoth
+)
+
 func ProtoFromString(str string) (protoSpec, error) {
 	switch str {
 	case "plain":
@@ -46,23 +52,25 @@ func (p protoSpec) String() string {
 	case ProtoBoth:
 		return "Both"
 	}
-	return "Unknown"
+	return "?UNK?"
 }
 
-const (
-	ProtoPlain protoSpec = iota + 1
-	ProtoSecure
-	ProtoBoth
-)
+func (p protoSpec) SupportsPlain() bool {
+	return (p & ProtoPlain) != 0
+}
+
+func (p protoSpec) SupportsSecure() bool {
+	return (p & ProtoSecure) != 0
+}
 
 type Group struct {
-	Key          string
-	Name         string
-	Proto        protoSpec
-	System       string
-	SkipFragment bool
-	Paths        []*PathPattern
-	Domains      []*DomainPattern
+	Key           string
+	Name          string
+	Proto         protoSpec
+	System        string
+	StripFragment bool
+	Paths         []*PathPattern
+	Domains       []*DomainPattern
 }
 
 func (g *Group) IsValid(loc string) (string, error) {
@@ -71,16 +79,16 @@ func (g *Group) IsValid(loc string) (string, error) {
 		return "", ErrInvURL
 	}
 	protoValid := false
-	if (g.Proto&ProtoPlain) == 1 && u.Scheme == "http" {
+	if g.Proto.SupportsPlain() && u.Scheme == "http" {
 		protoValid = true
 	}
-	if (g.Proto&ProtoSecure) == 1 && u.Scheme == "https" {
+	if g.Proto.SupportsSecure() && u.Scheme == "https" {
 		protoValid = true
 	}
 	if !protoValid {
 		return "", ErrInvProto
 	}
-	if g.SkipFragment {
+	if g.StripFragment {
 		u.Fragment = ""
 	}
 	var match bool

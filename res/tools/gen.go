@@ -23,9 +23,10 @@ import (
 
 var (
 	Template = template.New("")
+	Styles = make(map[string][]byte, 0)
 )
 
-func Setup() {
+func genInit() {
 	var err error
 `
 
@@ -36,6 +37,9 @@ const templateDecl = `
 	}
 `
 
+const styleDecl = `
+	Styles[%#v] = []byte(%#v)
+`
 const fileFooter = `
 }
 // end of generated file
@@ -65,10 +69,15 @@ func genGoFile(fPath string, info os.FileInfo, err error) error {
 	}
 	normPath, err := filepath.Rel(dataDir, fPath)
 	panicIf(err)
-	if filepath.Ext(normPath) == ".tmpl" {
+	switch filepath.Ext(normPath) {
+	case ".tmpl":
 		b, err := ioutil.ReadFile(fPath)
 		panicIf(err)
 		fmt.Fprintf(outFile, templateDecl, normPath, string(b))
+	case ".css":
+		b, err := ioutil.ReadFile(fPath)
+		panicIf(err)
+		fmt.Fprintf(outFile, styleDecl, normPath, string(b))
 	}
 	return nil
 }

@@ -1,0 +1,160 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+div#main {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+table.groups {
+    color: #333333;
+    border: 1px solid #787878;
+    border-collapse: collapse;
+    margin: 0.2em;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+table.groups th {
+    font-size: 1.2em;
+    border: 1px solid #787878;
+    padding: 0.5em;
+    padding-bottom: 0.25em;
+    padding-top: 0.25em;
+    background-color: #dedede;
+    text-align: center;
+}
+
+table.groups th.key-column {
+    min-width: 5em;
+}
+
+table.groups th.name-column {
+    min-width: 10em;
+}
+
+table.groups td {
+    font-size: 1.1em;
+    border: 1px solid #787878;
+    padding: 0.3em;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+table.groups caption {
+    font-size: 1.4em;
+    padding-bottom: 0.3em;
+}
+
+.message-row {
+    text-align: center;
+    font-size: 1em;
+}
+
+div.form-field {
+    padding-bottom: 0.6em;
+}
+
+div.form-submit {
+    text-align: right;
+}
+
+div.form-submit input {
+    font-size: 1.1em;
+    background-color: #bbb;
+}
+
+div.form-submit input:hover {
+    background-color: #eee;
+}
+
+div.form-field label {
+    padding-right: 1.2em;
+    font-size: 1.1em;
+}
+
+form {
+    vertical-align: middle;
+    margin: 0.3em;
+    text-align: left;
+}
+
+legend {
+    font-size: 1.4em;
+}
+
+div.main {
+    margin-left: auto;
+    margin-right: auto;
+    display: table;
+    font-size: 1.2em;
+}
+
+span.label {
+    color: #555;
+}
+
+div.group-info {
+    padding-bottom: 0.4em;
+}
+
+div.group-proto {
+        display: inline-block;
+}
+
+div.group-proto span {
+    border: 1px solid black;
+    padding: 0.2em;
+    margin: 0.2em;
+    border-radius: 5px;
+}
+
+div.group-name {
+    text-align: center;
+    font-weight: normal;
+    font-size: 1.8em;
+}
+
+div.group-key {
+    text-align: center;
+    font-weight: normal;
+    font-size: 1.4em;
+}
+
+form {
+    text-align: center;
+}
+
+div.pattern-area {
+    display: inline-block;
+    margin-right: 1em;
+    margin-left: 1em;
+}
+
+div.pattern-area textarea {
+    display: block;
+}
+
+fieldset legend {
+    font-size: 1.4em;
+}
+
+div.form-submit {
+    padding-top: 0.5em;
+    text-align: right
+}
+
+div.form-submit input {
+    background-color: #c5c5c5;
+}
+
+span.proto-true {
+    background-color: #00ae22;
+}
+
+span.proto-false {
+    background-color: #ae0022;
+}

@@ -1,6 +1,8 @@
 package pow
 
-import "time"
+import (
+	"time"
+)
 
 // This interface represents a typical challenge-response
 // proof-of-work system.
@@ -18,6 +20,17 @@ type POW interface {
 	Desc() string
 }
 
-var Systems = map[string]POW{
-	"HC": new(Hashcash),
+var (
+	Systems = map[string]POW{
+		"HC": new(Hashcash),
+	}
+	Desc = descMap()
+)
+
+func descMap() map[string]string {
+	ret := make(map[string]string, len(Systems))
+	for k, v := range Systems {
+		ret[k] = v.Desc()
+	}
+	return ret
 }

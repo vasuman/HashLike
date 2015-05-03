@@ -5,3 +5,4 @@ out/
 
 **/.dir-locals.el
 /res/res_gen.go
+/test.db
