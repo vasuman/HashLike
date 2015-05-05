@@ -3,12 +3,9 @@ package db
 import "testing"
 
 func TestPatterns(t *testing.T) {
-	type pattern interface {
-		Matches(string) bool
-	}
 	var (
-		p   *PathPattern
-		d   *DomainPattern
+		p   *PathMatcher
+		d   *DomainMatcher
 		err error
 	)
 	parsePath := func(s string) {
@@ -25,12 +22,12 @@ func TestPatterns(t *testing.T) {
 		}
 		t.Logf("parsed domain pattern %#v\n", s)
 	}
-	expectMatch := func(p pattern, s string) {
+	expectMatch := func(p Matcher, s string) {
 		if !p.Matches(s) {
 			t.Errorf("pattern match failed - %#v", s)
 		}
 	}
-	expectFail := func(p pattern, s string) {
+	expectFail := func(p Matcher, s string) {
 		if p.Matches(s) {
 			t.Errorf("invalid pattern match - %#v", s)
 		}

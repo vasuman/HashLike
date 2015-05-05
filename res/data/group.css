@@ -1,25 +1,13 @@
-body {
-    margin: 0;
-    padding: 0;
-}
-
-div#main {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-}
 
 table.groups {
     color: #333333;
     border: 1px solid #787878;
     border-collapse: collapse;
     margin: 0.2em;
-    display: inline-block;
-    vertical-align: middle;
+    font-size: 1.2em;
 }
 
 table.groups th {
-    font-size: 1.2em;
     border: 1px solid #787878;
     padding: 0.5em;
     padding-bottom: 0.25em;
@@ -37,7 +25,6 @@ table.groups th.name-column {
 }
 
 table.groups td {
-    font-size: 1.1em;
     border: 1px solid #787878;
     padding: 0.3em;
     background-color: #ffffff;
@@ -51,7 +38,6 @@ table.groups caption {
 
 .message-row {
     text-align: center;
-    font-size: 1em;
 }
 
 div.form-field {
@@ -63,7 +49,6 @@ div.form-submit {
 }
 
 div.form-submit input {
-    font-size: 1.1em;
     background-color: #bbb;
 }
 
@@ -73,11 +58,9 @@ div.form-submit input:hover {
 
 div.form-field label {
     padding-right: 1.2em;
-    font-size: 1.1em;
 }
 
 form {
-    vertical-align: middle;
     margin: 0.3em;
     text-align: left;
 }
@@ -99,6 +82,7 @@ span.label {
 
 div.group-info {
     padding-bottom: 0.4em;
+    padding-top: 0.4em;
 }
 
 div.group-proto {
@@ -122,10 +106,6 @@ div.group-key {
     text-align: center;
     font-weight: normal;
     font-size: 1.4em;
-}
-
-form {
-    text-align: center;
 }
 
 div.pattern-area {
@@ -152,9 +132,19 @@ div.form-submit input {
 }
 
 span.proto-true {
-    background-color: #00ae22;
+    background-color: #00ff00;
 }
 
 span.proto-false {
-    background-color: #ae0022;
+    background-color: #ff0000;
+}
+
+fieldset input.single-field {
+    width: 85%;
+}
+
+div.msg-lighter {
+    padding-bottom: 0.4em;
+    font-size: 1em;
+    color: #555;
 }

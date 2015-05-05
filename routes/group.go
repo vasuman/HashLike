@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/vasuman/HashLike/db"
 	"github.com/vasuman/HashLike/pow"
@@ -10,6 +13,35 @@ import (
 type headerParams struct {
 	Title  string
 	Styles []string
+}
+
+type httpObj struct {
+	w http.ResponseWriter
+	r *http.Request
+}
+
+type groupAction func(httpObj, *db.Group, url.Values)
+
+func actionWrap(ga groupAction) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			badRequest(w, err.Error())
+			return
+		}
+		form := r.PostForm
+		key := form.Get("key")
+		if key == "" {
+			badRequest(w, "need a valid 'key'")
+			return
+		}
+		g, err := db.GetGroup(key)
+		if err != nil {
+			internalError(w, err)
+			return
+		}
+		ga(httpObj{w, r}, g, form)
+	}
 }
 
 func listGroups(w http.ResponseWriter, r *http.Request) {
@@ -90,17 +122,78 @@ func addGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g.System = sys
-	logger.Printf("built group %+v\n", g)
 	err = db.AddGroup(g)
 	if err != nil {
 		internalError(w, err)
 		return
 	}
+	logger.Printf("built group %+v\n", g)
 	http.Redirect(w, r, "show?key="+g.Key, http.StatusSeeOther)
 }
 
-func setPatterns(w http.ResponseWriter, r *http.Request) {
+func setPatterns(p httpObj, g *db.Group, form url.Values) {
+	const newline = "\n"
+	var (
+		dm  *db.DomainMatcher
+		pm  *db.PathMatcher
+		err error
+	)
+	domains := strings.Split(form.Get("domains"), newline)
+	paths := strings.Split(form.Get("paths"), newline)
+	g.Domains, g.Paths = nil, nil
+	for _, dom := range domains {
+		dom = strings.TrimSpace(dom)
+		if dom == "" {
+			continue
+		}
+		dm, err = db.ParseDomain(dom)
+		if err != nil {
+			break
+		}
+		g.Domains = append(g.Domains, dm)
+	}
+	if err != nil {
+		badRequest(p.w, "invalid domain pattern")
+		return
+	}
+	for _, path := range paths {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			continue
+		}
+		pm, err = db.ParsePath(path)
+		if err != nil {
+			break
+		}
+		g.Paths = append(g.Paths, pm)
+	}
+	if err != nil {
+		badRequest(p.w, "invalid path pattern")
+		return
+	}
+	err = db.UpdateGroup(g)
+	if err != nil {
+		internalError(p.w, err)
+		return
+	}
+	fmt.Fprintf(p.w, "updated patterns")
 }
 
-func checkURL(w http.ResponseWriter, r *http.Request) {
+func checkURL(p httpObj, g *db.Group, form url.Values) {
+	//	http.Redirect(w, r, "show?key="+g.Key, http.StatusSeeOther)
+	_, err := g.IsValid(form.Get("url"))
+	if err != nil {
+		fmt.Fprintf(p.w, "error - %v", err)
+		return
+	}
+	fmt.Fprintf(p.w, "yes")
+}
+
+func deleteGroup(p httpObj, g *db.Group, form url.Values) {
+	if g.Name != form.Get("name") {
+		badRequest(p.w, "group name mismatch")
+		return
+	}
+	db.DeleteGroup(g)
+	http.Redirect(p.w, p.r, "", http.StatusSeeOther)
 }

@@ -1,0 +1,70 @@
+{{ define "printPatterns" }}{{ range . }}{{ .Repr }}
+{{ end }}{{ end }}
+
+{{ define "groupShow" }}
+{{ template "header" .Header }}
+{{ with .Group }}
+<div class="main">
+  <div class="group-name">
+    Group "{{ .Name }}"
+  </div>
+  <div class="group-key">
+      {{ .Key }}
+  </div>
+  <div class="group-info">
+    <span class="label">Protocols -</span>
+    <div class="group-proto">
+      {{ with .Proto }}
+      <span class="proto-{{ .SupportsPlain }}"> Plain </span>
+      <span class="proto-{{ .SupportsSecure }}"> Secure </span>
+      {{ end }}
+    </div>
+  </div>
+  <div class="group-info">
+    <span class="label">Strip fragment -</span> {{ .StripFragment | yesOrNo }}
+  </div>
+  <div class="group-info">
+    <span class="label">Proof-of-work system -</span> {{ .System | sysDesc }}
+  </div>
+  <form action="patterns" method="post">
+    <input type="hidden" name="key" value="{{ .Key }}"/>
+    <fieldset>
+      <legend> Patterns </legend>
+      <div class="pattern-area">
+        <label for="domain-patterns"> Domains </label>
+        <textarea name="domains" autocomplete="off" id="domain-patterns" cols="40" rows="10">{{template "printPatterns" .Domains}}</textarea>
+      </div>
+      <div class="pattern-area">
+        <label for="path-patterns"> Paths </label>
+        <textarea name="paths" autocomplete="off" id="path-patterns" cols="40" rows="10">{{template "printPatterns" .Paths}}</textarea>
+      </div>
+      <div class="form-submit">
+        <input type="submit" value="Save"/>
+      </div>
+    </fieldset>
+  </form>
+  <form action="check" method="post">
+    <input type="hidden" name="key" value="{{ .Key }}"/>
+    <fieldset>
+      <legend> Check URL </legend>
+      <input class="single-field" type="text" name="url"/>
+      <div class="form-submit">
+        <input type="submit" value="Check"/>
+    </fieldset>
+  </form>
+  <form action="delete" method="post">
+    <input type="hidden" name="key" value="{{ .Key }}"/>
+    <fieldset>
+      <legend> Delete </legend>
+      <div class="msg-lighter">
+        Type the name of the group to confirm.
+      </div>
+      <input class="single-field" type="text" name="name"/>
+      <div class="form-submit">
+        <input type="submit" value="Delete"/>
+    </div>
+  </fieldset>
+</form>
+</div>
+{{ end }}
+{{ end }}

@@ -69,8 +69,8 @@ type Group struct {
 	Proto         protoSpec
 	System        string
 	StripFragment bool
-	Paths         []*PathPattern
-	Domains       []*DomainPattern
+	Paths         []*PathMatcher
+	Domains       []*DomainMatcher
 }
 
 func (g *Group) IsValid(loc string) (string, error) {
@@ -154,6 +154,14 @@ func UpdateGroup(group *Group) error {
 			return err
 		}
 		return groupBucket.Put([]byte(group.Key), v)
+	})
+	return err
+}
+
+func DeleteGroup(group *Group) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		groupBucket := tx.Bucket(groupBucKey)
+		return groupBucket.Delete([]byte(group.Key))
 	})
 	return err
 }

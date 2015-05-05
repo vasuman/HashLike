@@ -11,12 +11,22 @@ const (
 	DomainSep = "."
 )
 
-type PathPattern struct {
-	Parts    []*PartMatcher
-	Complete bool
+type Matcher interface {
+	Matches(string) bool
+	Repr() string
 }
 
-func (p *PathPattern) Matches(path string) bool {
+type PathMatcher struct {
+	Parts    []PartMatcher
+	Complete bool
+	Str      string
+}
+
+func (p *PathMatcher) Repr() string {
+	return p.Str
+}
+
+func (p *PathMatcher) Matches(path string) bool {
 	parts := strings.Split(path, PathSep)
 	if len(parts) < len(p.Parts) {
 		return false
@@ -32,8 +42,9 @@ func (p *PathPattern) Matches(path string) bool {
 	return true
 }
 
-func ParsePath(s string) (*PathPattern, error) {
-	p := new(PathPattern)
+func ParsePath(s string) (*PathMatcher, error) {
+	p := new(PathMatcher)
+	p.Str = s
 	if strings.HasSuffix(s, "$") {
 		p.Complete = true
 		s = s[:len(s)-1]
@@ -47,16 +58,17 @@ func ParsePath(s string) (*PathPattern, error) {
 		if err != nil {
 			return nil, err
 		}
-		p.Parts = append(p.Parts, part)
+		p.Parts = append(p.Parts, *part)
 	}
 	return p, nil
 }
 
-type DomainPattern struct {
-	Parts []*PartMatcher
+type DomainMatcher struct {
+	Parts []PartMatcher
+	Str   string
 }
 
-func (d *DomainPattern) Matches(domain string) bool {
+func (d *DomainMatcher) Matches(domain string) bool {
 	parts := strings.Split(domain, DomainSep)
 	if len(parts) != len(d.Parts) {
 		return false
@@ -69,15 +81,20 @@ func (d *DomainPattern) Matches(domain string) bool {
 	return true
 }
 
-func ParseDomain(s string) (*DomainPattern, error) {
-	d := new(DomainPattern)
+func (d *DomainMatcher) Repr() string {
+	return d.Str
+}
+
+func ParseDomain(s string) (*DomainMatcher, error) {
+	d := new(DomainMatcher)
+	d.Str = s
 	pts := strings.Split(s, DomainSep)
 	for _, pt := range pts {
 		part, err := parsePart(pt)
 		if err != nil {
 			return nil, err
 		}
-		d.Parts = append(d.Parts, part)
+		d.Parts = append(d.Parts, *part)
 	}
 	return d, nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/vasuman/HashLike/res"
 )
 
-const stylePrefix = "/styles/"
+const stylesPrefix = "/styles/"
 
 var logger *log.Logger
 
@@ -20,18 +20,6 @@ func getIP(r *http.Request) []byte {
 	ip := net.ParseIP(r.RemoteAddr)
 	//TODO: check the 'X-Real-IP' and 'X-Forwarded-For' headers.
 	return ip
-}
-
-func method(meth string, fn http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != meth {
-			code := http.StatusMethodNotAllowed
-			txt := fmt.Sprintf("method %s not allowed here", r.Method)
-			http.Error(w, txt, code)
-			return
-		}
-		fn(w, r)
-	}
 }
 
 func badRequest(w http.ResponseWriter, msg string) {
@@ -57,27 +45,50 @@ func renderTemplate(w http.ResponseWriter, name string, ctx interface{}) {
 	io.Copy(w, &b)
 }
 
+func leafHandler(path, meth string, fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != path {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method != meth {
+			code := http.StatusMethodNotAllowed
+			txt := fmt.Sprintf("method %s not allowed here", r.Method)
+			http.Error(w, txt, code)
+			return
+		}
+		fn(w, r)
+	}
+
+}
+
 func GetRootHandler(logInst *log.Logger) http.Handler {
+	register := func(h *http.ServeMux, path, meth string, fn http.HandlerFunc) {
+		h.HandleFunc(path, leafHandler(path, meth, fn))
+	}
 	logger = logInst
 	res.Setup()
 	r := http.NewServeMux()
 	d := http.NewServeMux()
 	r.HandleFunc("/", root)
-	d.HandleFunc("/group/", method("GET", listGroups))
-	d.HandleFunc("/group/show", method("GET", showGroup))
-	d.HandleFunc("/group/add", method("POST", addGroup))
-	d.HandleFunc("/group/patterns", method("POST", setPatterns))
-	d.HandleFunc("/group/check", method("POST", checkURL))
+	register(d, "/group/", "GET", listGroups)
+	register(d, "/group/show", "GET", showGroup)
+	register(d, "/group/add", "POST", addGroup)
+	register(d, "/group/delete", "POST", actionWrap(deleteGroup))
+	register(d, "/group/patterns", "POST", actionWrap(setPatterns))
+	register(d, "/group/check", "POST", actionWrap(checkURL))
 	//TODO: dashboard authentication
 	r.Handle("/group/", d)
-	a := http.NewServeMux()
-	a.HandleFunc("/api/count", method("GET", getCount))
-	a.HandleFunc("/api/like", method("POST", newChallenge))
-	a.HandleFunc("/api/verify", method("POST", verifySoln))
-	r.Handle("/api/", a)
-	//TODO: url public/private
-	r.HandleFunc("/url", method("GET", showURL))
-	r.HandleFunc(stylePrefix, method("GET", serveStyle))
+
+	// a := http.NewServeMux()
+	// a.HandleFunc("/api/count", method("GET", getCount))
+	// a.HandleFunc("/api/like", method("POST", newChallenge))
+	// a.HandleFunc("/api/verify", method("POST", verifySoln))
+	// r.Handle("/api/", a)
+	// //TODO: url public/private
+	// r.HandleFunc("/url", method("GET", showURL))
+
+	r.HandleFunc(stylesPrefix, serveStyle)
 	return r
 }
 
@@ -90,7 +101,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveStyle(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, stylePrefix)
+	path := strings.TrimPrefix(r.URL.Path, stylesPrefix)
 	s, ok := res.Styles[path]
 	if !ok {
 		http.NotFound(w, r)

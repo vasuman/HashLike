@@ -27,16 +27,16 @@ func TestMain(m *testing.M) {
 
 func TestGroups(t *testing.T) {
 	g := &Group{
-		Name:         "testGroup",
-		Proto:        ProtoBoth,
-		System:       "HC128",
-		SkipFragment: true,
+		Name:          "testGroup",
+		Proto:         ProtoBoth,
+		System:        "HC128",
+		StripFragment: true,
 	}
 	err := AddGroup(g)
 	failIf(t, err)
 	ret, err := GetGroup(g.Key)
 	failIf(t, err)
-	if *ret != *g {
+	if ret.Key != g.Key {
 		t.Error("retrieved value not same as inserted")
 		t.Logf("%+v != %+v\n", ret, g)
 	}
