@@ -44,8 +44,6 @@ func init() {
 	flag.Parse()
 }
 
-const dbFileMode = 0660
-
 func main() {
 	var err error
 	logger, err = setupLogger(logPath)
@@ -53,13 +51,13 @@ func main() {
 		fmt.Printf("failed to setup logger - %v\n", err)
 		return
 	}
-	dbInst, err := bolt.Open(dbPath, dbFileMode, bolt.DefaultOptions)
+	dbInst, err := bolt.Open(dbPath, 0660, nil)
 	if err != nil {
 		fmt.Printf("failed to initialize database - %v\n", err)
 		return
 	}
 	defer dbInst.Close()
-	err = db.Init(dbInst)
+	err = db.Init(dbInst, logger)
 	if err != nil {
 		fmt.Printf("failed to setup database - %v\n", err)
 		return

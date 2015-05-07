@@ -3,15 +3,23 @@ package db
 import (
 	"bytes"
 	"encoding/gob"
+	"log"
 
 	"github.com/boltdb/bolt"
 )
 
-var db *bolt.DB
-
 var (
-	groupBucKey = []byte("Group")
+	logger          *log.Logger
+	db              *bolt.DB
+	bucKeyGroup     = []byte("Group")
+	bucKeyChallenge = []byte("Challenge")
 )
+
+func panicIf(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
 func encGob(v interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
@@ -27,6 +35,11 @@ func decGob(b []byte, dst interface{}) error {
 	return err
 }
 
+func encJSON(v interface{}) error {
+
+	return err
+}
+
 func setupBuckets(tx *bolt.Tx) error {
 	var err error
 	createBucket := func(bucket []byte) {
@@ -34,12 +47,14 @@ func setupBuckets(tx *bolt.Tx) error {
 			_, err = tx.CreateBucketIfNotExists(bucket)
 		}
 	}
-	createBucket(groupBucKey)
+	createBucket(bucKeyGroup)
+	createBucket(bucKeyChallenge)
 	return err
 }
 
-func Init(dbInst *bolt.DB) error {
+func Init(dbInst *bolt.DB, logInst *log.Logger) error {
 	db = dbInst
+	logger = logInst
 	err := db.Update(setupBuckets)
 	return err
 }

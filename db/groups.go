@@ -17,12 +17,6 @@ var (
 	ErrNoPathMatch    = errors.New("URL doesn't match any path pattern")
 )
 
-func panicIf(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 type protoSpec int
 
 const (
@@ -52,7 +46,7 @@ func (p protoSpec) String() string {
 	case ProtoBoth:
 		return "Both"
 	}
-	return "?UNK?"
+	return "?UNKOWN?"
 }
 
 func (p protoSpec) SupportsPlain() bool {
@@ -73,10 +67,10 @@ type Group struct {
 	Domains       []*DomainMatcher
 }
 
-func (g *Group) IsValid(loc string) (string, error) {
+func (g *Group) IsValid(loc string) (*url.URL, error) {
 	u, err := url.Parse(loc)
 	if err != nil {
-		return "", ErrInvURL
+		return nil, ErrInvURL
 	}
 	protoValid := false
 	if g.Proto.SupportsPlain() && u.Scheme == "http" {
@@ -86,13 +80,12 @@ func (g *Group) IsValid(loc string) (string, error) {
 		protoValid = true
 	}
 	if !protoValid {
-		return "", ErrInvProto
+		return nil, ErrInvProto
 	}
 	if g.StripFragment {
 		u.Fragment = ""
 	}
-	var match bool
-	match = false
+	match := false
 	for _, domain := range g.Domains {
 		if domain.Matches(u.Host) {
 			match = true
@@ -100,7 +93,7 @@ func (g *Group) IsValid(loc string) (string, error) {
 		}
 	}
 	if !match {
-		return "", ErrNoDomainMatch
+		return nil, ErrNoDomainMatch
 	}
 	match = false
 	for _, path := range g.Paths {
@@ -110,10 +103,10 @@ func (g *Group) IsValid(loc string) (string, error) {
 		}
 	}
 	if !match {
-		return "", ErrNoPathMatch
+		return nil, ErrNoPathMatch
 	}
 	//TODO: verify path and domain
-	return u.String(), nil
+	return u, nil
 }
 
 const (
@@ -134,7 +127,7 @@ func keyExists(key string) bool {
 	//TODO
 	var exists bool
 	db.View(func(tx *bolt.Tx) error {
-		groupBucket := tx.Bucket(groupBucKey)
+		groupBucket := tx.Bucket(bucKeyGroup)
 		v := groupBucket.Get([]byte(key))
 		if v == nil {
 			exists = false
@@ -148,7 +141,7 @@ func keyExists(key string) bool {
 
 func UpdateGroup(group *Group) error {
 	err := db.Update(func(tx *bolt.Tx) error {
-		groupBucket := tx.Bucket(groupBucKey)
+		groupBucket := tx.Bucket(bucKeyGroup)
 		v, err := encGob(group)
 		if err != nil {
 			return err
@@ -160,7 +153,7 @@ func UpdateGroup(group *Group) error {
 
 func DeleteGroup(group *Group) error {
 	err := db.Update(func(tx *bolt.Tx) error {
-		groupBucket := tx.Bucket(groupBucKey)
+		groupBucket := tx.Bucket(bucKeyGroup)
 		return groupBucket.Delete([]byte(group.Key))
 	})
 	return err
@@ -169,7 +162,7 @@ func DeleteGroup(group *Group) error {
 func GetGroup(key string) (*Group, error) {
 	g := new(Group)
 	err := db.View(func(tx *bolt.Tx) error {
-		groupBucket := tx.Bucket(groupBucKey)
+		groupBucket := tx.Bucket(bucKeyGroup)
 		v := groupBucket.Get([]byte(key))
 		if v == nil {
 			return ErrNoSuchGroupKey
@@ -194,7 +187,7 @@ func AddGroup(group *Group) error {
 func ListGroups() ([]*Group, error) {
 	gs := make([]*Group, 0)
 	err := db.View(func(tx *bolt.Tx) error {
-		groupBucket := tx.Bucket(groupBucKey)
+		groupBucket := tx.Bucket(bucKeyGroup)
 		err := groupBucket.ForEach(func(k, v []byte) error {
 			g := new(Group)
 			err := decGob(v, g)

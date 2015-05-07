@@ -74,9 +74,9 @@ func GetRootHandler(logInst *log.Logger) http.Handler {
 	register(d, "/group/", "GET", listGroups)
 	register(d, "/group/show", "GET", showGroup)
 	register(d, "/group/add", "POST", addGroup)
-	register(d, "/group/delete", "POST", actionWrap(deleteGroup))
-	register(d, "/group/patterns", "POST", actionWrap(setPatterns))
-	register(d, "/group/check", "POST", actionWrap(checkURL))
+	register(d, "/group/delete", "POST", groupWrap(deleteGroup))
+	register(d, "/group/patterns", "POST", groupWrap(setPatterns))
+	register(d, "/group/check", "POST", groupWrap(checkURL))
 	//TODO: dashboard authentication
 	r.Handle("/group/", d)
 

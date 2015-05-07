@@ -16,10 +16,10 @@ func encodeTime(t time.Time) []byte {
 
 type Hashcash struct{}
 
-func (*Hashcash) Challenge(url string, addr []byte, when time.Time) []byte {
-	b := []byte(url)
-	b = append(b, encodeTime(when)...)
-	return append(b, addr...)
+func (*Hashcash) Challenge(params *ChallengeParams) []byte {
+	b := []byte(params.Loc.String())
+	b = append(b, encodeTime(params.When)...)
+	return append(b, params.Addr...)
 }
 
 func countLeadingZeros(h []byte) int {

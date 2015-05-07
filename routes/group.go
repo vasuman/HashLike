@@ -15,14 +15,12 @@ type headerParams struct {
 	Styles []string
 }
 
-type httpObj struct {
+type reqResp struct {
 	w http.ResponseWriter
 	r *http.Request
 }
 
-type groupAction func(httpObj, *db.Group, url.Values)
-
-func actionWrap(ga groupAction) http.HandlerFunc {
+func groupWrap(ga func(reqResp, *db.Group, url.Values)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
