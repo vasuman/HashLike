@@ -38,7 +38,7 @@ func groupWrap(ga func(reqResp, *db.Group, url.Values)) http.HandlerFunc {
 			internalError(w, err)
 			return
 		}
-		ga(httpObj{w, r}, g, form)
+		ga(reqResp{w, r}, g, form)
 	}
 }
 
@@ -129,7 +129,7 @@ func addGroup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "show?key="+g.Key, http.StatusSeeOther)
 }
 
-func setPatterns(p httpObj, g *db.Group, form url.Values) {
+func setPatterns(p reqResp, g *db.Group, form url.Values) {
 	const newline = "\n"
 	var (
 		dm  *db.DomainMatcher
@@ -177,7 +177,7 @@ func setPatterns(p httpObj, g *db.Group, form url.Values) {
 	fmt.Fprintf(p.w, "updated patterns")
 }
 
-func checkURL(p httpObj, g *db.Group, form url.Values) {
+func checkURL(p reqResp, g *db.Group, form url.Values) {
 	//	http.Redirect(w, r, "show?key="+g.Key, http.StatusSeeOther)
 	_, err := g.IsValid(form.Get("url"))
 	if err != nil {
@@ -187,7 +187,7 @@ func checkURL(p httpObj, g *db.Group, form url.Values) {
 	fmt.Fprintf(p.w, "yes")
 }
 
-func deleteGroup(p httpObj, g *db.Group, form url.Values) {
+func deleteGroup(p reqResp, g *db.Group, form url.Values) {
 	if g.Name != form.Get("name") {
 		badRequest(p.w, "group name mismatch")
 		return

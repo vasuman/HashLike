@@ -53,13 +53,12 @@ func leafHandler(path, meth string, fn http.HandlerFunc) http.HandlerFunc {
 		}
 		if r.Method != meth {
 			code := http.StatusMethodNotAllowed
-			txt := fmt.Sprintf("method %s not allowed here", r.Method)
+			txt := fmt.Sprintf("method %s not allowed", r.Method)
 			http.Error(w, txt, code)
 			return
 		}
 		fn(w, r)
 	}
-
 }
 
 func GetRootHandler(logInst *log.Logger) http.Handler {

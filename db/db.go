@@ -36,8 +36,8 @@ func decGob(b []byte, dst interface{}) error {
 }
 
 func encJSON(v interface{}) error {
-
-	return err
+	
+	return nil
 }
 
 func setupBuckets(tx *bolt.Tx) error {
